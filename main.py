@@ -12,7 +12,6 @@ root.maxsize(1800,1800)
 
 menubar = menu.add_menu(root)
 
-
 tab_parent = ttk.Notebook(root)
 
 tab1 = ttk.Frame(tab_parent)
