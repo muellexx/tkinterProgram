@@ -21,6 +21,8 @@ class weather_app:
         self.search_input.grid(padx=5, pady=5)
         search_btn = Button(self.search_frame, text="Search", command=self.search_weather)
         search_btn.grid(padx=5, pady=5)
+        self.warning_message = Label(self.search_frame, fg="red")
+        self.warning_message.grid()
 
         self.search_frame.grid(row=0, column=0, sticky=N+S+W)
 
@@ -81,6 +83,7 @@ class weather_app:
 
 
     def search_weather(self):
+        self.warning_message['text'] = ''
         with open('/home/alex/workspace/tkinter/tkinterProgram/weather_api.json') as config_file:
             config = json.load(config_file)
         base_url = "http://api.openweathermap.org/data/2.5/weather?q="
@@ -90,7 +93,10 @@ class weather_app:
         response = requests.get(url)
         x = response.json()
         # x = {'coord': {'lon': 140.47, 'lat': 37.75}, 'weather': [{'id': 500, 'main': 'Rain', 'description': 'light rain', 'icon': '10n'}], 'base': 'stations', 'main': {'temp': 18.07, 'feels_like': 20.05, 'temp_min': 17.78, 'temp_max': 18.33, 'pressure': 997, 'humidity': 96}, 'wind': {'speed': 0.81, 'deg': 355}, 'rain': {'1h': 0.51}, 'clouds': {'all': 100}, 'dt': 1593874199, 'sys': {'type': 3, 'id': 2002752, 'country': 'JP', 'sunrise': 1593804075, 'sunset': 1593857006}, 'timezone': 32400, 'id': 2112923, 'name': 'Fukushima', 'cod': 200}
-        
+
+        if not x['cod'] == 200:
+            self.warning_message['text'] = 'The city was not found'
+            return
         # city, country
         self.city_country['text'] = x['name'] + ", " + x['sys']['country']
         self.coordinates['text'] = str(x['coord']['lon']) + ", " + str(x['coord']['lat'])
@@ -99,17 +105,21 @@ class weather_app:
         self.local_time['text'] = curr_time.strftime("%Y/%m/%d, %H:%M")
 
         # weather
-        self.weather['text'] = x['weather'][0]['description']
-        icon = requests.get("http://openweathermap.org/img/wn/" + x['weather'][0]['icon'] + "@2x.png")
-        img = Image.open(BytesIO(icon.content))
-        self.my_img = ImageTk.PhotoImage(img)
-        self.weather_icon['image'] = self.my_img
-        self.temperature['text'] = str(round(x['main']['temp'],1)) + " °C"
-        self.pressure['text'] = str(x['main']['pressure']) + " hPa"
-        self.humidity['text'] = str(x['main']['humidity']) + " %"
-        self.wind_speed['text'] = str(x['wind']['speed']) + " m/s"
-        self.wind_direction['text'] = wind_direction_calc(x['wind']['deg'])
-        self.rain['text'] = str(x['rain']['1h']) + " mm"
+        self.weather['text'] = get_json_response(x,'weather',0,'description').title()
+        try:
+            icon = requests.get("http://openweathermap.org/img/wn/" + x['weather'][0]['icon'] + "@2x.png")
+            img = Image.open(BytesIO(icon.content))
+            self.my_img = ImageTk.PhotoImage(img)
+            self.weather_icon['image'] = self.my_img
+            self.weather_icon.grid()
+        except KeyError:
+            self.weather_icon.grid_forget()
+        self.temperature['text'] = str(round(get_json_response(x,'main','temp',''),1)) + " °C"
+        self.pressure['text'] = str(get_json_response(x,'main','pressure','')) + " hPa"
+        self.humidity['text'] = str(get_json_response(x,'main','humidity','')) + " %"
+        self.wind_speed['text'] = str(get_json_response(x,'wind','speed','')) + " m/s"
+        self.wind_direction['text'] = wind_direction_calc(get_json_response(x,'wind','deg',''))
+        self.rain['text'] = str(get_json_response(x,'rain','1h','')) + " mm"
         
 
 def wind_direction_calc(degrees):
@@ -135,4 +145,13 @@ def wind_direction_calc(degrees):
     else:
         return "North"
 
-    
+def get_json_response(json, a, b, c):
+    try:
+        if b == '':
+            return json[a]
+        if c == '':
+            return json[a][b]
+        else:
+            return json[a][b][c]
+    except KeyError:
+        return "-"
