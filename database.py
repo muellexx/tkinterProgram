@@ -227,7 +227,6 @@ class database_app:
             question = "Are you sure you want to delete " + record + "? This cannot be undone."
 
             confirmation = messagebox.askyesno(title, question)
-            print(confirmation)
             if confirmation:
                 c.execute("DELETE from addresses WHERE oid = " + str(self.record_id))
 
